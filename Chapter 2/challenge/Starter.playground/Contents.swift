@@ -4,28 +4,43 @@ import Combine
 var subscriptions = Set<AnyCancellable>()
 
 example(of: "Create a Blackjack card dealer") {
-  let dealtHand = PassthroughSubject<Hand, HandError>()
-  
-  func deal(_ cardCount: UInt) {
-    var deck = cards
-    var cardsRemaining = 52
-    var hand = Hand()
+    let dealtHand = PassthroughSubject<Hand, HandError>()
     
-    for _ in 0 ..< cardCount {
-      let randomIndex = Int.random(in: 0 ..< cardsRemaining)
-      hand.append(deck[randomIndex])
-      deck.remove(at: randomIndex)
-      cardsRemaining -= 1
+    var subscriptions = Set<AnyCancellable>()
+    
+    func deal(_ cardCount: UInt) {
+        var deck = cards
+        var cardsRemaining = 52
+        var hand = Hand()
+        
+        for _ in 0 ..< cardCount {
+            let randomIndex = Int.random(in: 0 ..< cardsRemaining)
+            hand.append(deck[randomIndex])
+            deck.remove(at: randomIndex)
+            cardsRemaining -= 1
+        }
+        
+        checkDealtHand(hand: hand)
     }
     
-    // Add code to update dealtHand here
+    func checkDealtHand(hand: Hand) {
+        hand.points > 21 ? dealtHand.send(completion: .failure(.busted)) : dealtHand.send(hand)
+    }
     
-  }
-  
-  // Add subscription to dealtHand here
-  
-  
-  deal(3)
+    dealtHand
+        .sink { (error) in
+            switch error {
+            case let .failure(error):
+                print("\(error.description)")
+            case .finished:
+                print("Finished")
+            }
+        } receiveValue: { (item) in
+            print("Card \(item.cardString) and Points \(item.points)")
+        }
+        .store(in: &subscriptions)
+    
+    deal(3)
 }
 
 /// Copyright (c) 2020 Razeware LLC
