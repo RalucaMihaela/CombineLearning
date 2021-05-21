@@ -72,47 +72,47 @@ example(of: "Just") {
             receiveValue: {
                 print("Received value (another)", $0)
             })
-
+    
 }
 
 example(of: "assign(to:on:)") {
-  // 1
-  class SomeObject {
-    var value: String = "" {
-      didSet {
-        print(value)
-      }
+    // 1
+    class SomeObject {
+        var value: String = "" {
+            didSet {
+                print(value)
+            }
+        }
     }
-  }
-  
-  // 2
-  let object = SomeObject()
-  
-  // 3
-  let publisher = ["Hello", "world!"].publisher
-  
-  // 4
-  _ = publisher
-    .assign(to: \.value, on: object)
+    
+    // 2
+    let object = SomeObject()
+    
+    // 3
+    let publisher = ["Hello", "world!"].publisher
+    
+    // 4
+    _ = publisher
+        .assign(to: \.value, on: object)
 }
 
 example(of: "assign(to:)") {
-  // 1
-  class SomeObject {
-    @Published var value = 0
-  }
-  
-  let object = SomeObject()
-  
-  // 2
-  object.$value
-    .sink {
-      print($0)
+    // 1
+    class SomeObject {
+        @Published var value = 0
     }
-  
-  // 3
-  (0..<10).publisher
-    .assign(to: &object.$value)
+    
+    let object = SomeObject()
+    
+    // 2
+    object.$value
+        .sink {
+            print($0)
+        }
+    
+    // 3
+    (0..<10).publisher
+        .assign(to: &object.$value)
 }
 
 ///// Custom subscriber
@@ -122,7 +122,7 @@ example(of: "Custom Subscriber") {
     let publisher = (1...6).publisher
     
     final class IntSubscriber: Subscriber {
-
+        
         typealias Input = Int
         typealias Failure = Never
         
@@ -134,16 +134,74 @@ example(of: "Custom Subscriber") {
             print("Received value", input)
             return .none
         }
-   
+        
         func receive(completion: Subscribers.Completion<Never>) {
             print("Received completion", completion)
         }
     }
     
     let subscriber = IntSubscriber()
-
+    
     publisher.subscribe(subscriber)
 }
+
+
+example(of: "PassthroughSubject") {
+    // 1
+    enum MyError: Error {
+        case test
+    }
+    
+    // 2
+    final class StringSubscriber: Subscriber {
+        typealias Input = String
+        typealias Failure = MyError
+        
+        func receive(subscription: Subscription) {
+            subscription.request(.max(2))
+        }
+        func receive(_ input: String) -> Subscribers.Demand {
+            print("Received value", input)
+            // 3
+            return input == "World" ? .max(1) : .none
+        }
+        
+        func receive(completion: Subscribers.Completion<MyError>) {
+            print("Received completion", completion)
+        }
+    }
+    
+    // 4
+    let subscriber = StringSubscriber()
+    
+    let subject = PassthroughSubject<String, MyError>()
+
+    // 6
+    subject.subscribe(subscriber)
+
+    // 7
+    let subscription = subject
+      .sink(
+        receiveCompletion: { completion in
+          print("Received completion (sink)", completion)
+        },
+        receiveValue: { value in
+          print("Received value (sink)", value)
+        }
+      )
+    
+    subject.send("Hello")
+    subject.send("World")
+
+   
+}
+
+
+
+
+
+
+
 
 
 
