@@ -5,6 +5,8 @@ var subscriptions = Set<AnyCancellable>()
 
 example(of: "Create a Blackjack card dealer") {
   let dealtHand = PassthroughSubject<Hand, HandError>()
+    
+  var subscriptions = Set<AnyCancellable>()
   
   func deal(_ cardCount: UInt) {
     var deck = cards
@@ -18,9 +20,12 @@ example(of: "Create a Blackjack card dealer") {
       cardsRemaining -= 1
     }
     
-    // Add code to update dealtHand here
-    
+    checkDealtHand(hand: hand)
   }
+    
+    func checkDealtHand(hand: Hand) {
+        hand.points > 21 ? dealtHand.send(completion: .failure(HandError.busted)) : dealtHand.send(hand)
+    }
   
   // Add subscription to dealtHand here
   
